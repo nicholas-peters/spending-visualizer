@@ -4,10 +4,39 @@ import plotly.express as px
 import json
 import os
 
-category_file = "categories.json"
+category_json = "categories.json"
 
 
 st.set_page_config(page_title = "Chime Statement Visualizer", layout="wide")
+
+# css to make it look cool
+st.markdown("""
+<style>
+  .stApp {
+    background: #135057;
+background: linear-gradient(0deg,rgba(19, 80, 87, 1) 0%, rgba(1, 17, 69, 1) 100%);
+  }
+  header[data-testid="stHeader"] {
+    display: none;
+  }
+            
+.stTabs [data-baseweb="tab"] {
+    color: white;
+    background-color: transparent;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: #eee;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #1dd0e0 !important; /* active tab text color */
+}
+
+
+
+</style>
+""", unsafe_allow_html=True)
 
 # keep categories stored
 if "categories" not in st.session_state:
@@ -15,17 +44,15 @@ if "categories" not in st.session_state:
     "Uncategorized": []
   }
 
-if os.path.exists(category_file):
-  if os.path.getsize(category_file) > 0:
+if os.path.exists(category_json):
+  if os.path.getsize(category_json) > 0:
     try:
-      with open(category_file, "r") as f:
+      with open(category_json, "r") as f:
         st.session_state.categories = json.load(f)
     except json.JSONDecodeError:
       st.session_state.categories = {"Uncategorized": []}
 
-def save_categories():
-  with open(category_file, "w") as f:
-    json.dump(st.session_state.categories, f)
+
 
 def categorize_transactions(df):
   df["CATEGORY"] = "Uncategorized"
@@ -41,6 +68,10 @@ def categorize_transactions(df):
         df.at[idx, "CATEGORY"] = category
 
   return df
+
+def save_categories():
+  with open(category_json, "w") as f:
+    json.dump(st.session_state.categories, f)
 
 def load_file(file):
   try:
@@ -80,7 +111,7 @@ def main():
             
             st.session_state.purchases = purchases.copy()
             
-            tab1, tab2, tab3 = st.tabs(["Purchases", "Deposits", "Other"])
+            tab1, tab2, tab3, tab4 = st.tabs(["Purchases", "Deposits", "Other", "Analyze"])
             
             with tab1: # purchases tab
                 new_category = st.text_input("New Category Name")
@@ -114,7 +145,14 @@ def main():
                             details = st.session_state.purchases.iloc[idx]["DESCRIPTION"]
                             add_keyword_to_category(new_category, details)
                     st.rerun()
+            
+            with tab2: # deposits tab
+                st.write(deposits)
+            
+            with tab3: # others tab
+                st.write(other)
 
+            with tab4: # analyze tab
                 st.subheader("Spending Visualizer")
                 category_totals = st.session_state.purchases.groupby("CATEGORY")["AMOUNT"].sum().reset_index()
                 category_totals = category_totals.sort_values("AMOUNT", ascending=False)
@@ -132,11 +170,35 @@ def main():
                    title="Categorized Purchases"
                 )
                 st.plotly_chart(fig, use_container_width=True)
-            
-            with tab2: # deposits tab
-                st.write(deposits)
-            
-            with tab3: # 
-                st.write(other)
+
+                # display spending changes by day graph
+                st.subheader("Spending Changes")
+                
+                col1, col2 = st.columns(2)
+                min_date = pd.to_datetime(st.session_state.purchases["TRANSACTION DATE"].min()).date()
+                max_date = pd.to_datetime(st.session_state.purchases["TRANSACTION DATE"].max()).date()
+                
+                with col1:
+                    start_date = st.date_input("Start Date", min_date, min_value=min_date, max_value=max_date)
+                with col2:
+                    end_date = st.date_input("End Date", max_date, min_value=min_date, max_value=max_date)
+                
+                purchases_copy = st.session_state.purchases.copy()
+                purchases_copy["TRANSACTION DATE"] = pd.to_datetime(purchases_copy["TRANSACTION DATE"])
+                mask = (purchases_copy["TRANSACTION DATE"].dt.date >= start_date) & \
+                       (purchases_copy["TRANSACTION DATE"].dt.date <= end_date)
+                filtered_purchases = purchases_copy[mask].copy()
+                
+                daily_data = filtered_purchases.copy()
+                daily_data["Date"] = daily_data["TRANSACTION DATE"].dt.date
+                daily_spending = daily_data.groupby("Date")["AMOUNT"].sum().reset_index()
+                daily_spending.columns = ["Date", "Amount"]
+                
+                fig_daily = px.line(daily_spending, x="Date", y="Amount", 
+                                   title="Spending by Day",
+                                   markers=True)
+                fig_daily.update_layout(xaxis_title="Day", yaxis_title="Money spent")
+                st.plotly_chart(fig_daily, use_container_width=True)
+                
 
 main()
