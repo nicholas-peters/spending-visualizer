@@ -2,33 +2,35 @@
 
 ## Description:
 
-This app allows a user to submit a bank statement CSV file, specifically tailored to those who use the mobile banking company, Chime.
+This **Python** app allows a user to submit a bank statement CSV file, specifically tailored to those who use the mobile banking company, Chime.
 
 Once inputted, this app allows the user to set categories for each of their purchases, which is stored in a json file, allowing the
 user to save time categorizing common expenses
 
-The app uses Pandas to manipulate the CSV, Streamlit to display the information to the user in a clean and organized matter, and Plotly
-to make charts and graphs to help visualize the data
+## Dependencies / Frameworks
+- **Pandas** to process and manipulate CSV data  
+- **Streamlit** to display information in a clean and organized way  
+- **Plotly** to generate interactive charts and graphs
 
 ## Installation:
 
 - ### Clone the repository
 
-git clone https://github.com/nicholas-peters/spending-visualizer.git
+  git clone https://github.com/nicholas-peters/spending-visualizer.git
 
-cd spending-visualizer.git
+  cd spending-visualizer.git
 
 - ### Create a virtual environment
   
-python3 -m venv venv
+  python3 -m venv venv
 
-source ./venv/bin/activate
+  source ./venv/bin/activate
 
 - ### Download dependencies
   
-pip install streamlit pandas plotly
+  pip install streamlit pandas plotly
 
-Now you can run the app using the command: streamlit run app.py
+  Now you can run the app using the command: streamlit run app.py
 
 ## How to Use:
 
